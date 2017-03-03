@@ -4,6 +4,8 @@ import cPickle
 import os
 import re
 from bs4 import BeautifulSoup
+import numpy as np
+
 import jieba
 #from base import *
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -142,6 +144,10 @@ class Textmodel(object):
         tokenize_word = self.text_preprocessor.preprocess_list(X)
         ret = self.tfidf_processor.fit_transform(tokenize_word)
         return self
+    def fit_transform(self, X):
+        tokenize_word = self.text_preprocessor.preprocess_list(X)
+        ret = self.tfidf_processor.fit_transform(tokenize_word)
+        return ret
 
     def fit(self, X):
         tokenize_word = self.text_preprocessor.preprocess_list(X)
@@ -168,6 +174,17 @@ class TextBatch(object):
             textprocessor.train(ndarray[:,i])
             self.textprocessorlist.append(textprocessor)
         return self
+    def fit_transform(self,ndarray):
+        (a,b) = ndarray
+        ret_feature = None
+        for i in range(b):
+            textprocessor = Textmodel()
+            ret = textprocessor.fit_transform(ndarray[:,i])
+            self.textprocessorlist.append(textprocessor)
+            if ret_feature is None:
+                ret_feature = ret
+            else: ret_feature = np.hstack((ret_feature,ret())
+        return ret_feature
     def fit(self,ndarray):
         (a,b) = ndarray
         ret_feature = None
@@ -204,6 +221,31 @@ class TextBatch(object):
                 self.pre += 1
                 self.dic[s]=  id
         return id
+    def getPortaitNum(self,ss):
+        try:
+            s = re.search('r\d+',ss)
+            if s:
+                return int(s)
+        except:
+            return None
+        return None
+
+    def getArea(self,ss):
+        try:
+            s = re.search('r\d+',ss)
+            if s:
+                return int(s)
+        except:
+            return None
+        return None
+
+    def getPrice(self,ss):
+        try:
+            ss = re.sub(r'"|,',"",ss)
+            return int(ss)
+        except:
+            return None
+        return None
 
     def getYears(self,ss):
         "1999年04月（築18年）"

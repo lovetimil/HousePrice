@@ -25,6 +25,7 @@ from StringTools import StringTools
 
 from TextGrocery import TextBatch,StringT
 from sklearn.svm import SVR
+from sklearn.metrics import mean_squared_error
 class PriceModel(object):
 
 
@@ -73,23 +74,52 @@ class PriceModel(object):
         self.enc = OneHotEncoder()
         self.model = SVR(kernel='rbf',C= 0.1,gamma= 0.1)
 
-    def train(self,yearf,textf,enmuf,continue_f,label):
-        yearf = pd.DataFrame(yearf)
-        trans_f = yearf.applymap(self.string_tool.getYears).as_matrix()
-        trans_enmuf = pd.DataFrame(enmuf).applymap(self.string_tool.String2id()).as_matrix()
-        textf = self.textmodel.train(textf).as_matrix()
-        trans_enmuf = self.enc.fit_transform(trans_enmuf)
-        X = np.hstack((yearf,trans_enmuf,continue_f))
+    def train(self,file):
+        (X,y) = self.preprocess(file)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=11)
         self.model.fit(X,y)
+        self.test(X,y)
         return self
+    def test(self,X,y):
+        y_predict = self.model.predict(X)
+        print mean_squared_error(y, y_predict)
 
-    def predict(self,yearf,textf,enmuf,continue_f):
-        yearf = pd.DataFrame(yearf)
-        trans_f = yearf.applymap(self.string_tool.getYears).as_matrix()
-        trans_enmuf = pd.DataFrame(enmuf).applymap(self.string_tool.String2id()).as_matrix()
-        textf = self.textmodel.fit(textf).as_matrix()
+    def preprocess(self,file):
+        df = pd.read_csv(file)
+        interval_years = df.icol(1).map(self.string_tool.getYears()).as_matrix()
+        portait = df.icol(2).map(self.string_tool.getPortaitNum()).as_matrix()
+        text = df.iloc[:,[4,10,11,12]].as_matrix()
+
+        price = df.icol(5).map(self.string_tool.getPrice()).as_matrix()
+        housearea = df.icol(6).map(self.string_tool.getArea()).as_matrix()
+        enum_f = df.iloc[:,[3,7,8]]
+        trans_enmuf = enum_f.applymap(self.string_tool.String2id()).as_matrix()
+        trans_enmuf = self.enc.fit_transform(trans_enmuf)
+
+        landarea = df.icol(9).map(self.string_tool.getArea()).as_matrix()
+
+        textf = self.textmodel.fit_transform(text).as_matrix()
+
+        X = np.hstack((interval_years,portait,housearea,landarea,trans_enmuf,textf))
+        y = price
+        return (X,y)
+    def predict(self,X):
+        X = pd.DataFrame(X)
+        interval_years = X.icol(1).map(self.string_tool.getYears()).as_matrix()
+        portait = X.icol(2).map(self.string_tool.getPortaitNum()).as_matrix()
+        text = X.iloc[:,[4,9,10,11]].as_matrix()
+
+        price = X.icol(5).map(self.string_tool.getPrice()).as_matrix()
+        housearea =X.icol(5).map(self.string_tool.getArea()).as_matrix()
+        enum_f = X.iloc[:,[3,6,7]]
+        trans_enmuf = enum_f.applymap(self.string_tool.String2id()).as_matrix()
         trans_enmuf = self.enc.transform(trans_enmuf)
-        X = np.hstack((yearf,trans_enmuf,continue_f))
+
+        landarea = X.icol(8).map(self.string_tool.getArea()).as_matrix()
+
+        textf = self.textmodel.fit(text).as_matrix()
+
+        X = np.hstack((interval_years,portait,housearea,landarea,trans_enmuf,textf))
         ret = self.model.predict(X,y)
         return ret
     def refreshpath(self,path):

@@ -27,6 +27,10 @@ import random
 from TextGrocery import TextBatch,StringT
 from sklearn.svm import SVR
 from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import robust_scale
+from sklearn.ensemble import GradientBoostingRegressor
+
+
 class PriceModel(object):
 
     def __init__(self):
@@ -35,7 +39,8 @@ class PriceModel(object):
         self.textmodel = TextBatch()
         self.string_tool = StringT()
         self.enc = OneHotEncoder()
-        self.model = SVR(kernel='rbf',C= 0.1,gamma= 0.1)
+        #self.model = SVR(kernel='rbf',C= 0.1,gamma= 0.1)
+        self.model = GradientBoostingRegressor()
         self.pdX = None
 
     def train(self,file):
@@ -68,11 +73,14 @@ class PriceModel(object):
         landarea = df.icol(9).map(self.string_tool.getArea).as_matrix().reshape(a,1)
 
         #textf = self.textmodel.fit_transform(text).as_matrix()
-
-        X = np.hstack((interval_years,portait,housearea,landarea,trans_enmuf,textf))
+        continue_f = robust_scale(np.hstack((interval_years,portait,housearea,landarea)),1)
+        #X = np.hstack((interval_years,portait,housearea,landarea,trans_enmuf,textf))
+        X = np.hstack((continue_f,trans_enmuf,textf))
         self.pdX = pd.DataFrame(X).fillna(df.mean())
 
+
         X = self.pdX.as_matrix()
+
         y = price
         return (X,y)
     def predict(self,X):
@@ -101,8 +109,10 @@ class PriceModel(object):
         landarea = X.icol(8).map(self.string_tool.getArea).as_matrix().reshape(a,1)
 
 
-
-        X = np.hstack((interval_years,portait,housearea,landarea,trans_enmuf,textf))
+        continue_f = robust_scale(np.hstack((interval_years,portait,housearea,landarea)),1)
+        #X = np.hstack((interval_years,portait,housearea,landarea,trans_enmuf,textf))
+        #X = np.hstack((interval_years,portait,housearea,landarea,trans_enmuf,textf))
+        X = np.hstack((continue_f,trans_enmuf,textf))
         (a,b) = self.pdX.shape
         tX = pd.concat([self.pdX,pd.DataFrame(X)])
         tX = tX.fillna(tX.mean())

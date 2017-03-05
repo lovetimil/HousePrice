@@ -5,6 +5,9 @@ import os
 import re
 from bs4 import BeautifulSoup
 import numpy as np
+import sys
+reload(sys)
+sys.setdefaultencoding( "utf-8" )
 
 import jieba
 #from base import *
@@ -42,14 +45,19 @@ class GroceryTextPreProcessor(object):
         return jieba.cut(text.strip(), cut_all=False)
 
     def purification(self, text, remove_stopwords=False):
-        text = BeautifulSoup(text).get_text()
-        text = re.sub("[\d\s+\.\!\/_,$%^*()-+\"\'╱\\\?\,@#$]+|[《》●+——！，。？、~@#￥%……&*（）「」:]+".decode("utf8"),
-                      "".decode("utf8"), text)
+        #text = BeautifulSoup(text).get_text()
+        #text = re.sub("[\d\s+\.\!\/_,$%^*()-+\"\'╱\\\?\,@#$]+|[《》●+——！，。？、~@#￥%……&*（）「」:]+".decode("utf8"),
+        #              "".decode("utf8"), text)
+        try:
+            text = re.sub(u"[\d\s+\.\!\/_,$%^*()-+\"\'╱\\\?\,@#$]+|[《》●+——！，。？、~@#￥%……&*（）「」:]+",
+                          u"", text.decode("utf-8").strip())
 
-        # text = re.sub("[a-zA-Z]","",text)
-        if remove_stopwords:
-            pass
-        return text
+            # text = re.sub("[a-zA-Z]","",text)
+            if remove_stopwords:
+                pass
+            return text
+        except:
+            return u""
 
 
     def preprocess(self, text, custom_tokenize=None):
@@ -149,24 +157,24 @@ class Textmodel(object):
         ret = self.tfidf_processor.fit_transform(tokenize_word)
         return ret
 
-    def fit(self, X):
+    def transform(self, X):
         tokenize_word = self.text_preprocessor.preprocess_list(X)
-        ret = self.tfidf_processor.fit_transform(tokenize_word)
+        ret = self.tfidf_processor.transform(tokenize_word)
         return ret
     def save(self,path):
-        self.text_preprocessor.save(path)
-        self.tfidf_processor.save(path)
+        self.text_preprocessor.save("%s_%s"%(path,"pre"))
+        self.tfidf_processor.save("%s_%s"%(path,"tf"))
         return self
     def load(self,path):
-        self.text_preprocessor = self.text_preprocessor.load(path)
-        self.tfidf_processor = self.tfidf_processor.load(path)
+        self.text_preprocessor = self.text_preprocessor.load("%s_%s"%(path,"pre"))
+        self.tfidf_processor = self.tfidf_processor.load("%s_%s"%(path,"tf"))
         return self
 
 class TextBatch(object):
     def __init__(self,feature_num=1):
         self.pre = 'textfeature'
         self.textprocessorlist = []
-        self.feature_num =1
+        self.feature_num =4
     def train(self,ndarray):
         (a,b) = ndarray
         for i in range(b):
@@ -175,24 +183,28 @@ class TextBatch(object):
             self.textprocessorlist.append(textprocessor)
         return self
     def fit_transform(self,ndarray):
-        (a,b) = ndarray
+        (a,b) = ndarray.shape
         ret_feature = None
         for i in range(b):
             textprocessor = Textmodel()
             ret = textprocessor.fit_transform(ndarray[:,i])
+            #print("ret",ret.shape)
             self.textprocessorlist.append(textprocessor)
             if ret_feature is None:
                 ret_feature = ret
-            else: ret_feature = np.hstack((ret_feature,ret())
+            else: ret_feature = np.hstack((ret_feature,ret))
         return ret_feature
-    def fit(self,ndarray):
-        (a,b) = ndarray
+    def transform(self, ndarray):
+        (a,b) = ndarray.shape
         ret_feature = None
         for i in range(b):
-            ret = self.textprocessorlist[i].fit(ndarray[:,i])
+            ret = self.textprocessorlist[i].transform(ndarray[:, i])
+            #print("ret",ret.shape)
+            (a,b) = ret.shape
+            ret = ret.toarray().reshape(a,b)
             if ret_feature is None:
                 ret_feature = ret
-            else: ret_feature = np.hstack((ret_feature,ret())
+            else: ret_feature = np.hstack((ret_feature,ret))
         return ret_feature
     def save(self,path):
         l = len(self.textprocessorlist)
@@ -203,11 +215,11 @@ class TextBatch(object):
     def load(self,path):
         for i in range(self.feature_num):
             path_ = "%s_%s"%(path,i)
-            self.textprocessorlist[i] = Textmodel().load(path_)
+            self.textprocessorlist.append( Textmodel().load(path_))
 
         return self
 
- class StringT(object):
+class StringT(object):
 
     def __init__(self):
             self.dic = defaultdict(int)
@@ -223,18 +235,18 @@ class TextBatch(object):
         return id
     def getPortaitNum(self,ss):
         try:
-            s = re.search('r\d+',ss)
+            s = re.search(r'\d+',ss)
             if s:
-                return int(s)
+                return int(s.group(0))
         except:
             return None
         return None
 
     def getArea(self,ss):
         try:
-            s = re.search('r\d+',ss)
+            s = re.search(r'\d+',ss)
             if s:
-                return int(s)
+                return int(s.group(0))
         except:
             return None
         return None

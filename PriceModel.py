@@ -80,8 +80,10 @@ class PriceModel(object):
 
 
         X = self.pdX.as_matrix()
-
-        y = price
+        y = price.reshape(a,1)
+        Xy = pd.DataFrame(np.hstack((X,y))).dropna(axis=0).as_matrix()
+        X =Xy[:,0:-1]
+        y = Xy[:,-1]
         return (X,y)
     def predict(self,X):
         X = pd.DataFrame(X)

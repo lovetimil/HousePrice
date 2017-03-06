@@ -5,15 +5,15 @@ import pandas as pd
 import numpy as np
 from PriceModel import PriceModel
 
-file = '/home/bo/t'
+file = '/home/bo/works/data/japan_house_data.csv'  #把原有数据另存为 csv 即可
 
 # train
 pricepredict = PriceModel()
 
 pricepredict.train(file)
 
-pricepredict.save("./pricemodel/")
-
+pricepredict.save("./pricemodel/")  # model path
+#
 
 
 #predict
